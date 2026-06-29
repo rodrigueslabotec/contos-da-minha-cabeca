@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { BookOpen, User, Mail, Loader2, LogIn } from "lucide-react";
+import { BookOpen, User, Mail, Lock, Loader2, LogIn } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function DevLogin() {
@@ -82,6 +82,21 @@ export default function DevLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Senha de acesso"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-9"
+                  required
                 />
               </div>
             </div>
