@@ -225,7 +225,7 @@ export default function Home() {
               <span className="font-serif font-semibold text-foreground">Contos da Minha Cabeça</span>
             </div>
             <p className="text-sm text-muted-foreground text-center">
-              Transformando imaginação em histórias. © {new Date().getFullYear()}
+              © {new Date().getFullYear()} Contos da Minha Cabeça. Todos os direitos reservados.
             </p>
             <div className="flex gap-4 text-sm text-muted-foreground">
               <Link href="/catalogo" className="hover:text-foreground transition-colors">Catálogo</Link>

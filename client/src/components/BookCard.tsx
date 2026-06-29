@@ -96,7 +96,7 @@ export default function BookCard({
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {avgRating && parseFloat(avgRating) > 0 && (
                 <span className="flex items-center gap-0.5">
-                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  <Star className="h-3 w-3 fill-primary text-primary" />
                   {parseFloat(avgRating).toFixed(1)}
                 </span>
               )}
@@ -114,7 +114,7 @@ export default function BookCard({
             ) : needsSubscription ? (
               <span className="text-xs text-muted-foreground capitalize">{accessLevel}</span>
             ) : (
-              <span className="text-xs text-emerald-600 font-medium">Grátis</span>
+              <span className="text-xs text-primary font-medium">Grátis</span>
             )}
           </div>
         </div>

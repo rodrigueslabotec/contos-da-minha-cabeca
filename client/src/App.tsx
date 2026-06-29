@@ -13,6 +13,7 @@ import AuthorPanel from "./pages/AuthorPanel";
 import DonationPage from "./pages/DonationPage";
 import DonationRanking from "./pages/DonationRanking";
 import AdminPanel from "./pages/AdminPanel";
+import DevLogin from "./pages/DevLogin";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/doar" component={DonationPage} />
       <Route path="/ranking" component={DonationRanking} />
       <Route path="/admin" component={AdminPanel} />
+      <Route path="/dev-login" component={DevLogin} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -69,7 +69,7 @@ export default function Reader() {
 
   if (isLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDark ? "bg-gray-950 text-white" : "bg-amber-50"}`}>
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse space-y-4 w-full max-w-2xl px-4">
           <div className="h-6 bg-muted rounded w-1/3 mx-auto" />
           {Array.from({ length: 8 }).map((_, i) => (
@@ -93,14 +93,11 @@ export default function Reader() {
     );
   }
 
-  const bgClass = isDark ? "bg-gray-950 text-gray-100" : "bg-amber-50 text-gray-900";
-  const navBgClass = isDark ? "bg-gray-900 border-gray-800" : "bg-white border-border";
-
   return (
-    <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
+    <div className={`min-h-screen bg-background text-foreground transition-colors duration-300 ${isDark ? "dark" : ""}`}>
       <AdBanner />
       {/* Top Bar */}
-      <div className={`sticky top-0 z-40 border-b ${navBgClass} px-4 py-3 flex items-center justify-between`}>
+      <div className="sticky top-0 z-40 border-b border-border bg-card px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/livro/${bookIdNum}`}>
@@ -150,7 +147,7 @@ export default function Reader() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className={`fixed top-14 right-4 z-50 w-64 rounded-xl border shadow-xl p-4 ${navBgClass}`}>
+        <div className="fixed top-14 right-4 z-50 w-64 rounded-xl border border-border shadow-xl p-4 bg-card">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium">Tamanho da fonte</span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSettings(false)}>
@@ -175,7 +172,7 @@ export default function Reader() {
 
       {/* TOC Panel */}
       {showToc && chapters && (
-        <div className={`fixed top-14 left-0 right-0 sm:left-auto sm:right-4 z-50 sm:w-72 max-h-96 overflow-y-auto rounded-xl border shadow-xl ${navBgClass}`}>
+        <div className="fixed top-14 left-0 right-0 sm:left-auto sm:right-4 z-50 sm:w-72 max-h-96 overflow-y-auto rounded-xl border border-border shadow-xl bg-card">
           <div className="flex items-center justify-between p-3 border-b border-border sticky top-0 bg-inherit">
             <span className="text-sm font-medium">Capítulos ({chapters.length})</span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowToc(false)}>

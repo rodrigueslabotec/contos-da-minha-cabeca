@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 
 const RATING_COLORS: Record<string, string> = {
-  livre: "bg-emerald-100 text-emerald-800",
-  "14+": "bg-amber-100 text-amber-800",
-  "18+": "bg-red-100 text-red-800",
+  livre: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+  "14+": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  "18+": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 };
 
 export default function BookPage() {

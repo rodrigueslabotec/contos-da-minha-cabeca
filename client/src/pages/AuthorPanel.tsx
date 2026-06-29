@@ -18,11 +18,11 @@ import {
 import { Link } from "wouter";
 
 const STATUS_CONFIG = {
-  draft: { label: "Rascunho", icon: Clock, className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
-  pending: { label: "Aguardando aprovação", icon: Clock, className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
-  approved: { label: "Publicado", icon: CheckCircle, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-  rejected: { label: "Rejeitado", icon: XCircle, className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
-  unpublished: { label: "Despublicado", icon: AlertCircle, className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+  draft: { label: "Rascunho", icon: Clock, className: "bg-muted text-muted-foreground" },
+  pending: { label: "Aguardando aprovação", icon: Clock, className: "bg-accent/10 text-accent" },
+  approved: { label: "Publicado", icon: CheckCircle, className: "bg-primary/10 text-primary" },
+  rejected: { label: "Rejeitado", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  unpublished: { label: "Despublicado", icon: AlertCircle, className: "bg-muted text-muted-foreground" },
 };
 
 export default function AuthorPanel() {
@@ -170,7 +170,7 @@ export default function AuthorPanel() {
                   {coverPreview && (
                     <div className="relative w-20 h-28 rounded-lg overflow-hidden border border-border flex-shrink-0">
                       <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button onClick={() => { setCoverFile(null); setCoverPreview(null); }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                      <button onClick={() => { setCoverFile(null); setCoverPreview(null); }} className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/80">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
@@ -184,23 +184,23 @@ export default function AuthorPanel() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3 mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-3 mt-4 p-3 rounded-lg bg-accent/5 border border-accent/30">
+              <AlertCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-muted-foreground">
                 <strong>Atenção:</strong> Após a submissão, seu livro ficará em análise. O administrador irá revisar o conteúdo antes da publicação. Todos os livros são gratuitos para leitores.
               </div>
             </div>
 
             {isUploading && (
-              <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="mt-4 p-3 rounded-lg bg-card border border-border">
                 <div className="flex items-center gap-2 mb-2">
-                  <Upload className="h-4 w-4 text-blue-600 animate-spin" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Enviando arquivos...</span>
+                  <Upload className="h-4 w-4 text-muted-foreground animate-spin" />
+                  <span className="text-sm font-medium text-foreground">Enviando arquivos...</span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{uploadProgress}%</p>
+                <p className="text-xs text-muted-foreground mt-1">{uploadProgress}%</p>
               </div>
             )}
 

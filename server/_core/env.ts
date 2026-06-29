@@ -10,4 +10,6 @@ export const ENV = {
   mercadoPagoAccessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN ?? "",
   mercadoPagoUserId: process.env.MERCADO_PAGO_USER_ID ?? "",
   frontendUrl: process.env.VITE_FRONTEND_URL ?? "http://localhost:3000",
+  authBypass: process.env.AUTH_BYPASS === "true",
+  authBypassPassword: process.env.AUTH_BYPASS_PASSWORD ?? "",
 };

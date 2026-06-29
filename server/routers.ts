@@ -1,10 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
+import { ENV } from "./_core/env";
+import { sdk } from "./_core/sdk";
 import {
   awardMonthlyBadges,
   createBook,
@@ -47,6 +49,8 @@ import {
   updateBookStatus,
   updateUserProfile,
   upsertRating,
+  upsertUser,
+  getUserByOpenId,
   getBookRejection,
 } from "./db";
 import { storagePut } from "./storage";
@@ -123,12 +127,50 @@ export const appRouter = router({
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   auth: router({
+    status: publicProcedure.query(() => ({
+      bypassEnabled: ENV.authBypass,
+    })),
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    devLogin: publicProcedure
+      .input(
+        z.object({
+          name: z.string().min(1).max(128),
+          email: z.string().email().optional(),
+          password: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (!ENV.authBypass) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Auth bypass not enabled" });
+        }
+        if (ENV.authBypassPassword && input.password !== ENV.authBypassPassword) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Invalid password" });
+        }
+        const openId = `bypass_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        await upsertUser({
+          openId,
+          name: input.name,
+          email: input.email ?? null,
+          loginMethod: "bypass",
+          lastSignedIn: new Date(),
+        });
+        const user = await getUserByOpenId(openId);
+        if (!user) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
+        }
+        const sessionToken = await sdk.createSessionToken(openId, {
+          name: input.name,
+          expiresInMs: ONE_YEAR_MS,
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, user };
+      }),
     updateProfile: protectedProcedure
       .input(
         z.object({
