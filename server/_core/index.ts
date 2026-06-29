@@ -38,6 +38,8 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerWebhooks(app);
+  // Simple health check (no DB required)
+  app.get("/health", (_req, res) => res.json({ ok: true }));
   // tRPC API
   app.use(
     "/api/trpc",
