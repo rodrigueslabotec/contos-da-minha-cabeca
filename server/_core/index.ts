@@ -1,4 +1,8 @@
 import "dotenv/config";
+import { webcrypto } from "node:crypto";
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -38,6 +42,22 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerWebhooks(app);
+  // Local file upload endpoint (accepts JSON with base64 data)
+  app.post("/api/upload", async (req, res) => {
+    try {
+      const { fileName, mimeType, data } = req.body as { fileName: string; mimeType: string; data: string };
+      if (!data) {
+        return res.status(400).json({ success: false, error: "No data provided" });
+      }
+      const { saveBase64File } = await import("../localStorage");
+      const result = await saveBase64File(data, fileName || "file.bin", mimeType || "application/octet-stream");
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+  // Serve uploaded files
+  app.use("/uploads", express.static("uploads"));
   // Simple health check (no DB required)
   app.get("/health", (_req, res) => res.json({ ok: true }));
   // tRPC API

@@ -26,7 +26,7 @@ export default function BookPage() {
   const { data: book, isLoading } = trpc.books.bySlug.useQuery({ slug: slug ?? "" }, { enabled: !!slug });
   const { data: ratings } = trpc.books.ratings.useQuery({ bookId: book?.id ?? 0 }, { enabled: !!book?.id });
   const { data: chapters } = trpc.books.chapters.useQuery({ bookId: book?.id ?? 0 }, { enabled: !!book?.id });
-  const { data: access } = trpc.books.checkAccess.useQuery({ bookId: book?.id ?? 0 }, { enabled: !!book?.id && isAuthenticated });
+  const { data: access, isLoading: accessLoading } = trpc.books.checkAccess.useQuery({ bookId: book?.id ?? 0 }, { enabled: !!book?.id && isAuthenticated });
   const { data: favorites } = trpc.books.myFavorites.useQuery(undefined, { enabled: isAuthenticated });
 
   const utils = trpc.useUtils();
@@ -63,6 +63,7 @@ export default function BookPage() {
   }
 
   const ratingColor = RATING_COLORS[book.contentRating] ?? RATING_COLORS["livre"];
+  const isCheckingAccess = isAuthenticated && accessLoading;
   const canRead = isAuthenticated && access?.allowed;
   const firstChapter = chapters?.[0];
 
@@ -99,21 +100,26 @@ export default function BookPage() {
                 <Button className="w-full" onClick={() => (window.location.href = getLoginUrl())}>
                   Entrar para Ler
                 </Button>
+              ) : isCheckingAccess ? (
+                <Button className="w-full" variant="outline" disabled>
+                  Verificando acesso...
+                </Button>
               ) : canRead && firstChapter ? (
                 <Button className="w-full" asChild>
                   <Link href={`/ler/${book.id}/${firstChapter.id}`}>
                     <BookOpen className="mr-2 h-4 w-4" /> Ler Agora
                   </Link>
                 </Button>
-              ) : access && !access.allowed ? (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-amber-700 dark:text-amber-400">{access.reason}</p>
+              ) : chapters && chapters.length === 0 ? (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted border border-border">
+                  <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">Este livro ainda não possui capítulos disponíveis.</p>
                 </div>
               ) : (
-                <Button className="w-full" variant="outline" disabled>
-                  <AlertTriangle className="mr-2 h-4 w-4" /> Acesso Restrito
-                </Button>
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-amber-700 dark:text-amber-400">{access?.reason ?? "Sem permissão para acessar este conteúdo."}</p>
+                </div>
               )}
 
               <div className="flex gap-2">
@@ -215,9 +221,13 @@ export default function BookPage() {
                       <span className="text-sm font-medium">
                         {i + 1}. {ch.title ?? `Capítulo ${i + 1}`}
                       </span>
-                      {isAuthenticated ? (
-                        <Button size="sm" variant={canRead ? "ghost" : "outline"} asChild>
+                      {isAuthenticated && canRead ? (
+                        <Button size="sm" variant="ghost" asChild>
                           <Link href={`/ler/${book.id}/${ch.id}`}>Ler</Link>
+                        </Button>
+                      ) : isAuthenticated ? (
+                        <Button size="sm" variant="outline" disabled>
+                          Ler
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => (window.location.href = getLoginUrl())}>

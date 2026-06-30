@@ -2,7 +2,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/contexts/ThemeContext";
 import DonorBadge from "@/components/DonorBadge";
 import {
   DropdownMenu,
@@ -12,13 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BookOpen, Moon, Sun, Menu, X, Shield, PenLine, User, LogOut, Heart } from "lucide-react";
+import { BookOpen, Menu, X, Shield, PenLine, User, LogOut, Heart } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: badges } = trpc.donations.myBadges.useQuery(undefined, { enabled: isAuthenticated });
@@ -68,14 +66,6 @@ export default function Navbar() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-              aria-label="Alternar tema"
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

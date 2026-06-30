@@ -151,15 +151,28 @@ export const appRouter = router({
         if (ENV.authBypassPassword && input.password !== ENV.authBypassPassword) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Invalid password" });
         }
-        const openId = `bypass_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        await upsertUser({
-          openId,
-          name: input.name,
-          email: input.email ?? null,
-          loginMethod: "bypass",
-          lastSignedIn: new Date(),
-        });
-        const user = await getUserByOpenId(openId);
+        const { eq } = await import("drizzle-orm");
+        const { users } = await import("../drizzle/schema");
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        let existingUser: typeof users.$inferSelect | undefined;
+        if (input.email && db) {
+          [existingUser] = await db.select().from(users).where(eq(users.email, input.email));
+        }
+        if (existingUser) {
+          await db!.update(users).set({ name: input.name, lastSignedIn: new Date() }).where(eq(users.id, existingUser.id));
+        }
+        const openId = existingUser?.openId ?? `bypass_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        if (!existingUser) {
+          await upsertUser({
+            openId,
+            name: input.name,
+            email: input.email ?? null,
+            loginMethod: "bypass",
+            lastSignedIn: new Date(),
+          });
+        }
+        const user = existingUser ? await getUserByOpenId(existingUser.openId) : await getUserByOpenId(openId);
         if (!user) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create user" });
         }
@@ -474,6 +487,18 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    updateCategory: adminProcedure
+      .input(z.object({ id: z.number(), name: z.string().min(2), slug: z.string().min(2), description: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const { getDb } = await import("./db");
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        const { categories } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(categories).set({ name: input.name, slug: input.slug, description: input.description ?? "" }).where(eq(categories.id, input.id));
+        return { success: true };
+      }),
+
     // Manually award monthly badges
     awardBadges: adminProcedure.mutation(async () => {
       await awardMonthlyBadges();
@@ -537,8 +562,10 @@ Retorne o JSON no seguinte formato:
         const contentStr = typeof content === "string" ? content : content[0]?.type === "text" ? content[0].text : "";
         if (!contentStr) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Resposta da IA vazia" });
 
+        const cleanJson = contentStr.replace(/```json\s*/gi, "").replace(/```\s*$/gm, "").trim();
+
         try {
-          const analysis = JSON.parse(contentStr);
+          const analysis = JSON.parse(cleanJson);
           return {
             bookId: input.bookId,
             bookTitle: book.title,

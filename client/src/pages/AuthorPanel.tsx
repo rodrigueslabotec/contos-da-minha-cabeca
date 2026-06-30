@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   PenLine, BookOpen, Plus, Clock, CheckCircle, XCircle,
-  AlertCircle, TrendingUp, DollarSign, Eye, Upload, X
+  AlertCircle, TrendingUp, DollarSign, Eye, Upload, X, BookMarked
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
 
 const STATUS_CONFIG = {
@@ -46,6 +47,25 @@ export default function AuthorPanel() {
   const { data: donationShare } = trpc.author.donationShare.useQuery(undefined, { enabled: isAuthenticated });
   const { data: readerCount } = trpc.author.readerCount.useQuery(undefined, { enabled: isAuthenticated });
 
+  // Chapter management
+  const [chapterDialogBook, setChapterDialogBook] = useState<number | null>(null);
+  const [chapterTitle, setChapterTitle] = useState("");
+  const [chapterContent, setChapterContent] = useState("");
+  const { data: bookChapters, refetch: refetchChapters } = trpc.books.chapters.useQuery(
+    { bookId: chapterDialogBook ?? 0 },
+    { enabled: chapterDialogBook !== null },
+  );
+  const addChapter = trpc.author.addChapter.useMutation({
+    onSuccess: () => {
+      toast.success("Capítulo adicionado!");
+      setChapterTitle("");
+      setChapterContent("");
+      refetchChapters();
+      utils.author.myBooks.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const submitBook = trpc.author.submit.useMutation({
     onSuccess: () => {
       toast.success("Livro enviado para aprovação!");
@@ -55,6 +75,76 @@ export default function AuthorPanel() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const handleSubmit = async () => {
+    let coverUrl: string | undefined;
+    let contentUrl: string | undefined;
+
+    try {
+      if (coverFile) {
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(coverFile);
+        });
+        setIsUploading(true);
+        setUploadProgress(30);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: coverFile.name, mimeType: coverFile.type, data }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        coverUrl = json.url;
+        setUploadProgress(60);
+      }
+
+      if (contentFile) {
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(",")[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(contentFile);
+        });
+        setUploadProgress(75);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: contentFile.name, mimeType: contentFile.type, data }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error);
+        contentUrl = json.url;
+        setUploadProgress(90);
+      }
+
+      submitBook.mutate({
+        title,
+        subtitle: subtitle || undefined,
+        categoryId: categoryId ? parseInt(categoryId) : undefined,
+        synopsis: synopsis || undefined,
+        contentRating,
+        tags: tags ? JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)) : undefined,
+        coverUrl,
+        contentUrl,
+      });
+    } catch (e: any) {
+      toast.error(`Erro ao enviar arquivo: ${e.message}`);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   if (loading) return <div className="min-h-screen bg-background"><Navbar /></div>;
 
@@ -206,16 +296,7 @@ export default function AuthorPanel() {
 
             <div className="flex gap-3 mt-5">
               <Button
-                onClick={() => submitBook.mutate({
-                  title,
-                  subtitle: subtitle || undefined,
-                  categoryId: categoryId ? parseInt(categoryId) : undefined,
-                  synopsis: synopsis || undefined,
-                  contentRating,
-                  tags: tags ? JSON.stringify(tags.split(",").map((t) => t.trim()).filter(Boolean)) : undefined,
-                  coverUrl: undefined,
-                  contentUrl: undefined,
-                })}
+                onClick={handleSubmit}
                 disabled={!title || submitBook.isPending || isUploading}
               >
                 {submitBook.isPending ? "Enviando..." : isUploading ? "Enviando arquivos..." : "Enviar para Aprovação"}
@@ -273,11 +354,16 @@ export default function AuthorPanel() {
                           )}
                         </div>
                       </div>
-                      {book.status === "approved" && (
-                        <Button size="sm" variant="outline" asChild>
-                          <Link href={`/livro/${book.slug}`}>Ver</Link>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => setChapterDialogBook(book.id)}>
+                          <BookMarked className="h-3.5 w-3.5 mr-1" /> Capítulos
                         </Button>
-                      )}
+                        {book.status === "approved" && (
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/livro/${book.slug}`}>Ver</Link>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -307,6 +393,67 @@ export default function AuthorPanel() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Chapter Management Dialog */}
+      <Dialog open={chapterDialogBook !== null} onOpenChange={(open) => { if (!open) setChapterDialogBook(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Capítulos</DialogTitle>
+          </DialogHeader>
+
+          {bookChapters && bookChapters.length > 0 && (
+            <div className="space-y-2 mb-4">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Capítulos existentes</h4>
+              {bookChapters.map((ch, i) => (
+                <div key={ch.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card">
+                  <span className="text-sm truncate">{i + 1}. {ch.title ?? `Capítulo ${i + 1}`}</span>
+                  {ch.content && (
+                    <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                      {ch.content.length > 80 ? `${ch.content.slice(0, 80)}...` : ch.content.length + " chars"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-3 pt-3 border-t border-border">
+            <h4 className="text-sm font-medium">Adicionar capítulo</h4>
+            <div>
+              <Label className="text-xs mb-1 block">Título (opcional)</Label>
+              <Input
+                value={chapterTitle}
+                onChange={(e) => setChapterTitle(e.target.value)}
+                placeholder="Capítulo 1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">Conteúdo *</Label>
+              <Textarea
+                value={chapterContent}
+                onChange={(e) => setChapterContent(e.target.value)}
+                placeholder="Escreva o conteúdo do capítulo aqui..."
+                rows={6}
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (!chapterContent.trim()) { toast.error("O conteúdo do capítulo é obrigatório."); return; }
+                addChapter.mutate({
+                  bookId: chapterDialogBook!,
+                  title: chapterTitle || undefined,
+                  orderIndex: bookChapters?.length ?? 0,
+                  content: chapterContent,
+                });
+              }}
+              disabled={addChapter.isPending || !chapterContent.trim()}
+            >
+              {addChapter.isPending ? "Salvando..." : "Salvar Capítulo"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

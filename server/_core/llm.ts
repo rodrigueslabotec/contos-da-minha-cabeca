@@ -364,6 +364,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
   if (model) {
     payload.model = model;
+  } else {
+    payload.model = "llama-3.3-70b-versatile";
   }
 
   if (tools && tools.length > 0) {

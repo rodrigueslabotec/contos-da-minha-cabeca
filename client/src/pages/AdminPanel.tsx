@@ -30,11 +30,17 @@ export default function AdminPanel() {
   const [rejectReason, setRejectReason] = useState("");
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analyzingBookId, setAnalyzingBookId] = useState<number | null>(null);
+  const [bookPage, setBookPage] = useState(1);
+  const [userPage, setUserPage] = useState(1);
+
+  const [catName, setCatName] = useState("");
+  const [catSlug, setCatSlug] = useState("");
+  const [catDesc, setCatDesc] = useState("");
 
   const { data: stats } = trpc.admin.stats.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
   const { data: pendingBooks } = trpc.admin.pendingBooks.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
-  const { data: allBooks } = trpc.admin.allBooks.useQuery({ page: 1 }, { enabled: isAuthenticated && user?.role === "admin" });
-  const { data: users } = trpc.admin.users.useQuery({ page: 1 }, { enabled: isAuthenticated && user?.role === "admin" });
+  const { data: allBooks } = trpc.admin.allBooks.useQuery({ page: bookPage }, { enabled: isAuthenticated && user?.role === "admin" });
+  const { data: users } = trpc.admin.users.useQuery({ page: userPage }, { enabled: isAuthenticated && user?.role === "admin" });
   const approveBook = trpc.admin.approveBook.useMutation({
     onSuccess: () => { toast.success("Livro aprovado e publicado!"); utils.admin.pendingBooks.invalidate(); utils.admin.allBooks.invalidate(); },
     onError: (e) => toast.error(e.message),
@@ -66,6 +72,13 @@ export default function AdminPanel() {
     onError: (e) => toast.error(`Erro na análise: ${e.message}`),
     onSettled: () => setAnalyzingBookId(null),
   });
+
+  const createCategory = trpc.admin.createCategory.useMutation({
+    onSuccess: () => { toast.success("Categoria criada!"); setCatName(""); setCatSlug(""); setCatDesc(""); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const limit = 20;
 
   if (loading) return <div className="min-h-screen bg-background"><Navbar /></div>;
 
@@ -121,7 +134,7 @@ export default function AdminPanel() {
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="pending">
+        <Tabs defaultValue="pending" onValueChange={(v) => { if (v !== "pending") setAnalysisResult(null); setRejectBookId(null); }}>
           <TabsList className="mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger value="pending" className="gap-1.5">
               <Clock className="h-3.5 w-3.5" />
@@ -138,8 +151,11 @@ export default function AdminPanel() {
             <TabsTrigger value="users" className="gap-1.5">
               <Users className="h-3.5 w-3.5" /> Usuários
             </TabsTrigger>
-            <TabsTrigger value="commissions" className="gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5" /> Comissões
+            <TabsTrigger value="donations" className="gap-1.5">
+              <DollarSign className="h-3.5 w-3.5" /> Doações
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-1.5">
+              <BookMarked className="h-3.5 w-3.5" /> Categorias
             </TabsTrigger>
           </TabsList>
 
@@ -398,6 +414,19 @@ export default function AdminPanel() {
                 <p className="text-muted-foreground">Nenhum livro cadastrado.</p>
               </div>
             )}
+            {allBooks && allBooks.total > limit && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <Button size="sm" variant="outline" disabled={bookPage <= 1} onClick={() => setBookPage(p => p - 1)}>
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {bookPage} de {Math.ceil(allBooks.total / limit)}
+                </span>
+                <Button size="sm" variant="outline" disabled={bookPage >= Math.ceil(allBooks.total / limit)} onClick={() => setBookPage(p => p + 1)}>
+                  Próxima
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           {/* Users */}
@@ -457,6 +486,19 @@ export default function AdminPanel() {
                 <p className="text-muted-foreground">Nenhum usuário cadastrado.</p>
               </div>
             )}
+            {users && users.total > limit && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <Button size="sm" variant="outline" disabled={userPage <= 1} onClick={() => setUserPage(p => p - 1)}>
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Página {userPage} de {Math.ceil(users.total / limit)}
+                </span>
+                <Button size="sm" variant="outline" disabled={userPage >= Math.ceil(users.total / limit)} onClick={() => setUserPage(p => p + 1)}>
+                  Próxima
+                </Button>
+              </div>
+            )}
           </TabsContent>
 
           {/* Donations */}
@@ -464,6 +506,34 @@ export default function AdminPanel() {
             <div className="text-center py-12">
               <DollarSign className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-muted-foreground">As doações são repassadas em parte aos autores como incentivo, proporcionais à audiência de cada um.</p>
+            </div>
+          </TabsContent>
+
+          {/* Categories */}
+          <TabsContent value="categories">
+            <div className="max-w-md mx-auto">
+              <h3 className="font-serif text-lg font-bold text-foreground mb-4">Nova Categoria</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm mb-1.5 block">Nome</Label>
+                  <Input value={catName} onChange={e => setCatName(e.target.value)} placeholder="Ex: Fantasia" />
+                </div>
+                <div>
+                  <Label className="text-sm mb-1.5 block">Slug</Label>
+                  <Input value={catSlug} onChange={e => setCatSlug(e.target.value)} placeholder="Ex: fantasia" />
+                </div>
+                <div>
+                  <Label className="text-sm mb-1.5 block">Descrição (opcional)</Label>
+                  <Textarea value={catDesc} onChange={e => setCatDesc(e.target.value)} placeholder="Breve descrição da categoria" className="min-h-20 resize-none" />
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => createCategory.mutate({ name: catName, slug: catSlug, description: catDesc || undefined })}
+                  disabled={createCategory.isPending || !catName.trim() || !catSlug.trim()}
+                >
+                  Criar Categoria
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
